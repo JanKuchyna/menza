@@ -30,4 +30,4 @@ Projekt je navržen tak, aby šel spustit jednoduše pomocí .NET Aspire (vyžad
 
 ## 👥 Rozdělení práce v týmu
 
-Na projektu pracovali všichni členové týmu. Poměr odvedené práce je **1 : 1 : 1**.
+Na projektu pracovali všichni členové týmu. Poměr odvedené práce je **1 : 1 : 1 : 1**.
