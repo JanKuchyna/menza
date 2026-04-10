@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace UTB.Library.DbManager.Controllers;
+namespace UTB.Minute.DbManager.Controllers;
 
 [ApiController]
 [Route("[controller]")]

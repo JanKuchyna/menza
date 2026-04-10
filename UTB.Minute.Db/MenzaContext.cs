@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace UTB.Library.Db;
+namespace UTB.Minute.Db;
 
 public class MenzaContext(DbContextOptions<MenzaContext> options) : DbContext(options)
 {

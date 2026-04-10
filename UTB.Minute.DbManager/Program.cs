@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using UTB.Library.Db;
+using UTB.Minute.Db;
 
 var builder = WebApplication.CreateBuilder(args);
 

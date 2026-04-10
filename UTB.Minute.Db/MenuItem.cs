@@ -1,4 +1,4 @@
-namespace UTB.Library.Db;
+namespace UTB.Minute.Db;
 
 public class MenuItem
 {

@@ -1,4 +1,4 @@
-namespace UTB.Library.DbManager;
+namespace UTB.Minute.DbManager;
 
 public class WeatherForecast
 {

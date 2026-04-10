@@ -11,8 +11,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\UTB.Library.Db\UTB.Library.Db.csproj" />
-    <ProjectReference Include="..\UTB.Library.ServiceDefaults\UTB.Library.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\UTB.Minute.Db\UTB.Minute.Db.csproj" />
+    <ProjectReference Include="..\UTB.Minute.ServiceDefaults\UTB.Minute.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
