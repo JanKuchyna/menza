@@ -1,0 +1,103 @@
+@page "/orders"
+@inject IHttpClientFactory Clients
+
+<h3>Objednávky (nedokončené)</h3>
+
+<div class="mb-3">
+    <div class="alert @alertClass" role="alert" hidden="@(string.IsNullOrEmpty(alertMessage))">@alertMessage</div>
+</div>
+
+@if (orders is null)
+{
+    <p>Načítání...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead><tr><th>Id</th><th>Jídlo</th><th>Student</th><th>Stav</th><th>Akce</th></tr></thead>
+        <tbody>
+        @foreach (var o in orders)
+        {
+            <tr>
+                <td>@o.Id</td>
+                <td>@o.MenuItem.Food.Name</td>
+                <td>@o.StudentId</td>
+                <td>@o.Status</td>
+                <td>
+                    @if (o.Status == "Preparing")
+                    {
+                        <button class="btn btn-success btn-sm me-1" @onclick="() => ChangeStatus(o.Id, "Ready")">Hotovo</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => ChangeStatus(o.Id, "Cancelled")">Zrušit</button>
+                    }
+                    else if (o.Status == "Ready")
+                    {
+                        <button class="btn btn-primary btn-sm me-1" @onclick="() => ChangeStatus(o.Id, "Completed")">Vydáno</button>
+                        <button class="btn btn-danger btn-sm" @onclick="() => ChangeStatus(o.Id, "Cancelled")">Zrušit</button>
+                    }
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    List<OrderDto>? orders;
+
+    string alertMessage = string.Empty;
+    string alertClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load()
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            orders = await client.GetFromJsonAsync<List<OrderDto>>("/api/orders");
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    async Task ChangeStatus(int id, string status)
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            var dto = new UpdateOrderStatusDto(status);
+            var resp = await client.PatchAsJsonAsync($"/api/orders/{id}/status", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                ShowSuccess("Stav změněn.");
+                await Load();
+            }
+            else
+            {
+                var txt = await resp.Content.ReadAsStringAsync();
+                ShowError(txt);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    void ShowError(string msg)
+    {
+        alertMessage = msg;
+        alertClass = "alert-danger";
+    }
+
+    void ShowSuccess(string msg)
+    {
+        alertMessage = msg;
+        alertClass = "alert-success";
+    }
+}

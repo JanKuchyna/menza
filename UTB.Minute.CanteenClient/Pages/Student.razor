@@ -1,0 +1,97 @@
+@page "/student"
+@inject IHttpClientFactory Clients
+
+<h3>Menu pro dnešek</h3>
+
+<div class="mb-3">
+    <div class="alert @alertClass" role="alert" hidden="@(string.IsNullOrEmpty(alertMessage))">@alertMessage</div>
+</div>
+
+@if (menu is null)
+{
+    <p>Načítání...</p>
+}
+else
+{
+    <div class="list-group">
+    @foreach (var m in menu.Where(x => x.Date == DateOnly.FromDateTime(DateTime.Today)))
+    {
+        <div class="list-group-item d-flex justify-content-between align-items-center @(m.AvailablePortions==0?"text-muted bg-light":"")">
+            <div>
+                <div class="fw-bold">@m.Food.Name - @m.Food.Price Kč</div>
+                <div>@m.Food.Description</div>
+                <div>Porcí: @m.AvailablePortions</div>
+            </div>
+            <div>
+                <button class="btn btn-primary" disabled="@(m.AvailablePortions==0)" @onclick="() => Order(m.Id)">Objednat</button>
+            </div>
+        </div>
+    }
+    </div>
+}
+
+@code {
+    List<MenuItemDto>? menu;
+
+    string alertMessage = string.Empty;
+    string alertClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load()
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            menu = await client.GetFromJsonAsync<List<MenuItemDto>>("/api/menu");
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    async Task Order(int menuItemId)
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            var dto = new CreateOrderDto(menuItemId, Guid.NewGuid().ToString());
+            var resp = await client.PostAsJsonAsync("/api/orders", dto);
+            if (resp.IsSuccessStatusCode)
+            {
+                ShowSuccess("Objednáno.");
+                await Load();
+            }
+            else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+            {
+                var txt = await resp.Content.ReadAsStringAsync();
+                ShowError(txt);
+            }
+            else
+            {
+                var txt = await resp.Content.ReadAsStringAsync();
+                ShowError(txt);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    void ShowError(string msg)
+    {
+        alertMessage = msg;
+        alertClass = "alert-danger";
+    }
+
+    void ShowSuccess(string msg)
+    {
+        alertMessage = msg;
+        alertClass = "alert-success";
+    }
+}

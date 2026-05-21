@@ -1,0 +1,12 @@
+@if (!string.IsNullOrEmpty(Message))
+{
+    <div class="alert @CssClass" role="alert">@Message</div>
+}
+
+@code {
+    [Parameter]
+    public string Message { get; set; } = string.Empty;
+
+    [Parameter]
+    public string CssClass { get; set; } = "alert-info";
+}

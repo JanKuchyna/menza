@@ -114,6 +114,7 @@ var orders = api.MapGroup("/orders");
 orders.MapGet("/", async (MenzaContext db) => 
     TypedResults.Ok(await db.Orders
         .Include(o => o.MenuItem).ThenInclude(m => m.Food)
+        .Where(o => o.Status != OrderStatus.Completed) // return only unfinished orders for kitchen staff
         .Select(o => new OrderDto(
             o.Id, 
             new MenuItemDto(o.MenuItem.Id, o.MenuItem.Date, new FoodDto(o.MenuItem.Food.Id, o.MenuItem.Food.Name, o.MenuItem.Food.Description, o.MenuItem.Food.Price, o.MenuItem.Food.IsActive), o.MenuItem.AvailablePortions),
@@ -151,14 +152,35 @@ orders.MapPatch("/{id}/status", async (int id, UpdateOrderStatusDto dto, MenzaCo
     var order = await db.Orders.FindAsync(id);
     if (order is null) return Results.NotFound();
 
-    if (Enum.TryParse<OrderStatus>(dto.Status, out var newStatus))
+    if (!Enum.TryParse<OrderStatus>(dto.Status, out var newStatus))
     {
-        order.Status = newStatus;
-        await db.SaveChangesAsync();
-        return TypedResults.NoContent();
+        return Results.BadRequest("Invalid status.");
     }
-    
-    return Results.BadRequest("Invalid status.");
+
+    // Block invalid transitions: once Cancelled or Completed, no further transitions allowed
+    if (order.Status == OrderStatus.Cancelled || order.Status == OrderStatus.Completed)
+    {
+        return Results.BadRequest("Cannot change status of a cancelled or completed order.");
+    }
+
+    // Allowed transitions:
+    // Preparing -> Ready | Cancelled
+    // Ready -> Completed | Cancelled
+    var allowed = order.Status switch
+    {
+        OrderStatus.Preparing => new[] { OrderStatus.Ready, OrderStatus.Cancelled },
+        OrderStatus.Ready => new[] { OrderStatus.Completed, OrderStatus.Cancelled },
+        _ => Array.Empty<OrderStatus>()
+    };
+
+    if (!allowed.Contains(newStatus))
+    {
+        return Results.BadRequest($"Invalid state transition from {order.Status} to {newStatus}.");
+    }
+
+    order.Status = newStatus;
+    await db.SaveChangesAsync();
+    return TypedResults.NoContent();
 });
 
 app.Run();

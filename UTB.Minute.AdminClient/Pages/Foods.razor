@@ -1,0 +1,149 @@
+@page "/foods"
+@inject IHttpClientFactory Clients
+
+<h3>Jídla</h3>
+
+<Shared.Alert Message="@alertMessage" CssClass="@alertClass" />
+
+<div class="mb-3">
+    <button class="btn btn-primary me-2" @onclick="() => NewFood()">Nové jídlo</button>
+</div>
+
+@if (foods is null)
+{
+    <p>Načítání...</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead><tr><th>Id</th><th>Název</th><th>Popis</th><th>Cena</th><th>Aktivní</th><th></th></tr></thead>
+        <tbody>
+        @foreach (var f in foods)
+        {
+            <tr>
+                <td>@f.Id</td>
+                <td>@f.Name</td>
+                <td>@f.Description</td>
+                <td>@f.Price</td>
+                <td>@(f.IsActive ? "Ano" : "Ne")</td>
+                <td><button class="btn btn-sm btn-secondary" @onclick="() => Edit(f)">Upravit</button></td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@if (editing)
+{
+    <EditForm Model="editModel" OnValidSubmit="Save">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="mb-3">
+            <label class="form-label">Název</label>
+            <InputText class="form-control" @bind-Value="editModel.Name" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Popis</label>
+            <InputText class="form-control" @bind-Value="editModel.Description" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Cena</label>
+            <InputNumber class="form-control" @bind-Value="editModel.Price" />
+        </div>
+        <div class="mb-3 form-check">
+            <InputCheckbox class="form-check-input" @bind-Value="editModel.IsActive" />
+            <label class="form-check-label">Aktivní</label>
+        </div>
+        <button class="btn btn-success" type="submit">Uložit</button>
+        <button class="btn btn-secondary ms-2" type="button" @onclick="Cancel">Zrušit</button>
+    </EditForm>
+}
+
+@code {
+    List<FoodDto>? foods;
+    bool editing = false;
+    CreateFoodDto editModel = new("", null, 0m);
+    int? editId = null;
+
+    string alertMessage = string.Empty;
+    string alertClass = "alert-info";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+    }
+
+    async Task Load()
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            foods = await client.GetFromJsonAsync<List<FoodDto>>("/api/foods");
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    void NewFood()
+    {
+        editing = true;
+        editId = null;
+        editModel = new CreateFoodDto("", null, 0m);
+        alertMessage = string.Empty;
+    }
+
+    void Edit(FoodDto f)
+    {
+        editing = true;
+        editId = f.Id;
+        editModel = new CreateFoodDto(f.Name, f.Description, f.Price);
+        alertMessage = string.Empty;
+    }
+
+    void Cancel()
+    {
+        editing = false;
+        editId = null;
+    }
+
+    async Task Save()
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            if (editId is null)
+            {
+                var resp = await client.PostAsJsonAsync("/api/foods", editModel);
+                resp.EnsureSuccessStatusCode();
+                ShowSuccess("Jídlo vytvořeno.");
+            }
+            else
+            {
+                var resp = await client.PutAsJsonAsync($"/api/foods/{editId}", new UpdateFoodDto(editModel.Name, editModel.Description, editModel.Price));
+                resp.EnsureSuccessStatusCode();
+                ShowSuccess("Jídlo upraveno.");
+            }
+
+            editing = false;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    void ShowError(string message)
+    {
+        alertMessage = message;
+        alertClass = "alert-danger";
+    }
+
+    void ShowSuccess(string message)
+    {
+        alertMessage = message;
+        alertClass = "alert-success";
+    }
+}
