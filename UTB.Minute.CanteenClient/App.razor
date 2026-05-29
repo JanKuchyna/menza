@@ -1,8 +1,19 @@
 <Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Shared.MainLayout)" />
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Shared.MainLayout)">
+            <NotAuthorized>
+                @if (!context.User.Identity?.IsAuthenticated ?? true)
+                {
+                    <RedirectToLogin />
+                }
+                else
+                {
+                    <p>Přístup zamítnut. Nemáte roli kuchařky.</p>
+                }
+            </NotAuthorized>
+        </AuthorizeRouteView>
     </Found>
     <NotFound>
-        <p>Page not found</p>
+        <p>Stránka nenalezena.</p>
     </NotFound>
 </Router>

@@ -1,5 +1,6 @@
 @page "/student"
 @inject IHttpClientFactory Clients
+@implements IDisposable
 
 <h3>Menu pro dnešek</h3>
 
@@ -32,13 +33,42 @@ else
 
 @code {
     List<MenuItemDto>? menu;
-
     string alertMessage = string.Empty;
     string alertClass = "alert-info";
+
+    private CancellationTokenSource _cts = new();
 
     protected override async Task OnInitializedAsync()
     {
         await Load();
+        _ = Task.Run(ListenSseAsync);
+    }
+
+    async Task ListenSseAsync()
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            using var response = await client.GetAsync("/api/orders/events",
+                HttpCompletionOption.ResponseHeadersRead, _cts.Token);
+            using var stream = await response.Content.ReadAsStreamAsync(_cts.Token);
+            using var reader = new System.IO.StreamReader(stream);
+
+            while (!reader.EndOfStream && !_cts.Token.IsCancellationRequested)
+            {
+                var line = await reader.ReadLineAsync(_cts.Token);
+                if (line?.StartsWith("data:") == true)
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        await Load();
+                        StateHasChanged();
+                    });
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception) { /* connection lost */ }
     }
 
     async Task Load()
@@ -83,15 +113,12 @@ else
         }
     }
 
-    void ShowError(string msg)
-    {
-        alertMessage = msg;
-        alertClass = "alert-danger";
-    }
+    void ShowError(string msg) { alertMessage = msg; alertClass = "alert-danger"; }
+    void ShowSuccess(string msg) { alertMessage = msg; alertClass = "alert-success"; }
 
-    void ShowSuccess(string msg)
+    public void Dispose()
     {
-        alertMessage = msg;
-        alertClass = "alert-success";
+        _cts.Cancel();
+        _cts.Dispose();
     }
 }

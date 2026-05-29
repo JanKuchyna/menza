@@ -1,4 +1,5 @@
 @page "/foods"
+@attribute [Authorize(Roles = "admin")]
 @inject IHttpClientFactory Clients
 
 <h3>Jídla</h3>
@@ -40,18 +41,18 @@ else
         <ValidationSummary />
         <div class="mb-3">
             <label class="form-label">Název</label>
-            <InputText class="form-control" @bind-Value="editModel.Name" />
+            <InputText class="form-control" @bind-value="editModel.Name" />
         </div>
         <div class="mb-3">
             <label class="form-label">Popis</label>
-            <InputText class="form-control" @bind-Value="editModel.Description" />
+            <InputText class="form-control" @bind-value="editModel.Description" />
         </div>
         <div class="mb-3">
             <label class="form-label">Cena</label>
-            <InputNumber class="form-control" @bind-Value="editModel.Price" />
+            <InputNumber class="form-control" @bind-value="editModel.Price" />
         </div>
         <div class="mb-3 form-check">
-            <InputCheckbox class="form-check-input" @bind-Value="editModel.IsActive" />
+            <InputCheckbox class="form-check-input" @bind-value="editModel.IsActive" />
             <label class="form-check-label">Aktivní</label>
         </div>
         <button class="btn btn-success" type="submit">Uložit</button>
@@ -60,9 +61,17 @@ else
 }
 
 @code {
+    class FoodFormModel
+    {
+        public string Name { get; set; } = "";
+        public string? Description { get; set; }
+        public decimal Price { get; set; }
+        public bool IsActive { get; set; }
+    }
+
     List<FoodDto>? foods;
     bool editing = false;
-    CreateFoodDto editModel = new("", null, 0m);
+    FoodFormModel editModel = new();
     int? editId = null;
 
     string alertMessage = string.Empty;
@@ -90,7 +99,7 @@ else
     {
         editing = true;
         editId = null;
-        editModel = new CreateFoodDto("", null, 0m);
+        editModel = new FoodFormModel();
         alertMessage = string.Empty;
     }
 
@@ -98,7 +107,7 @@ else
     {
         editing = true;
         editId = f.Id;
-        editModel = new CreateFoodDto(f.Name, f.Description, f.Price);
+        editModel = new FoodFormModel { Name = f.Name, Description = f.Description, Price = f.Price, IsActive = f.IsActive };
         alertMessage = string.Empty;
     }
 
@@ -115,7 +124,7 @@ else
             var client = Clients.CreateClient("WebApi");
             if (editId is null)
             {
-                var resp = await client.PostAsJsonAsync("/api/foods", editModel);
+                var resp = await client.PostAsJsonAsync("/api/foods", new CreateFoodDto(editModel.Name, editModel.Description, editModel.Price));
                 resp.EnsureSuccessStatusCode();
                 ShowSuccess("Jídlo vytvořeno.");
             }

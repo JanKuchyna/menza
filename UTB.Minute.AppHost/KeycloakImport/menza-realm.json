@@ -1,0 +1,55 @@
+{
+  "realm": "menza",
+  "enabled": true,
+  "accessTokenLifespan": 3600,
+  "clients": [
+    {
+      "clientId": "admin-client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "admin-client-secret",
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    },
+    {
+      "clientId": "canteen-client",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "canteen-client-secret",
+      "redirectUris": ["*"],
+      "webOrigins": ["*"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "admin", "description": "Vedeni menzy" },
+      { "name": "cook", "description": "Kucharka" }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "email": "admin@menza.local",
+      "credentials": [
+        { "type": "password", "value": "admin123", "temporary": false }
+      ],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "cook",
+      "enabled": true,
+      "email": "cook@menza.local",
+      "credentials": [
+        { "type": "password", "value": "cook123", "temporary": false }
+      ],
+      "realmRoles": ["cook"]
+    }
+  ]
+}

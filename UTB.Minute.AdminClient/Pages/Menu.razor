@@ -1,4 +1,5 @@
 @page "/menu"
+@attribute [Authorize(Roles = "admin")]
 @inject IHttpClientFactory Clients
 
 <h3>Menu</h3>
@@ -39,15 +40,15 @@ else
         <ValidationSummary />
         <div class="mb-3">
             <label class="form-label">Datum</label>
-            <InputDate class="form-control" @bind-Value="editModel.Date" />
+            <InputDate class="form-control" @bind-value="editModel.Date" />
         </div>
         <div class="mb-3">
             <label class="form-label">Jídlo (ID)</label>
-            <InputNumber class="form-control" @bind-Value="editModel.FoodId" />
+            <InputNumber class="form-control" @bind-value="editModel.FoodId" />
         </div>
         <div class="mb-3">
             <label class="form-label">Dostupné porce</label>
-            <InputNumber class="form-control" @bind-Value="editModel.AvailablePortions" />
+            <InputNumber class="form-control" @bind-value="editModel.AvailablePortions" />
         </div>
         <button class="btn btn-success" type="submit">Uložit</button>
         <button class="btn btn-secondary ms-2" type="button" @onclick="Cancel">Zrušit</button>
@@ -55,9 +56,16 @@ else
 }
 
 @code {
+    class MenuItemFormModel
+    {
+        public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
+        public int FoodId { get; set; } = 1;
+        public int AvailablePortions { get; set; } = 1;
+    }
+
     List<MenuItemDto>? menu;
     bool editing = false;
-    CreateMenuItemDto editModel = new(DateOnly.FromDateTime(DateTime.Today), 1, 1);
+    MenuItemFormModel editModel = new();
     int? editId = null;
 
     string alertMessage = string.Empty;
@@ -85,7 +93,7 @@ else
     {
         editing = true;
         editId = null;
-        editModel = new CreateMenuItemDto(DateOnly.FromDateTime(DateTime.Today), 1, 1);
+        editModel = new MenuItemFormModel();
         alertMessage = string.Empty;
     }
 
@@ -93,7 +101,7 @@ else
     {
         editing = true;
         editId = m.Id;
-        editModel = new CreateMenuItemDto(m.Date, m.Food.Id, m.AvailablePortions);
+        editModel = new MenuItemFormModel { Date = m.Date, FoodId = m.Food.Id, AvailablePortions = m.AvailablePortions };
     }
 
     void Cancel() => editing = false;
@@ -105,13 +113,13 @@ else
             var client = Clients.CreateClient("WebApi");
             if (editId is null)
             {
-                var resp = await client.PostAsJsonAsync("/api/menu", editModel);
+                var resp = await client.PostAsJsonAsync("/api/menu", new CreateMenuItemDto(editModel.Date, editModel.FoodId, editModel.AvailablePortions));
                 resp.EnsureSuccessStatusCode();
                 ShowSuccess("Položka vytvořena.");
             }
             else
             {
-                var resp = await client.PutAsJsonAsync($"/api/menu/{editId}", editModel);
+                var resp = await client.PutAsJsonAsync($"/api/menu/{editId}", new UpdateMenuItemDto(editModel.Date, editModel.FoodId, editModel.AvailablePortions));
                 resp.EnsureSuccessStatusCode();
                 ShowSuccess("Položka upravena.");
             }
