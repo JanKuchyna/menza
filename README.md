@@ -1,6 +1,19 @@
-# Objednávací systém v menze (Půlsemestrální odevzdání)
+# Objednávací systém v menze (UTB Minute)
 
-Tento projekt je backendová část objednávacího systému pro univerzitní menzu. Je postaven na platformě **.NET 10** s využitím **.NET Aspire** pro orchestraci a **Entity Framework Core** pro práci s databází PostgreSQL.
+Semestrální projekt do předmětu **Aplikační frameworky**.
+
+Tento projekt je objednávací systém pro univerzitní menzu. Je postaven na platformě **.NET 10** s využitím **.NET Aspire** pro orchestraci a **Entity Framework Core** pro datovou vrstvu.
+
+## 📂 Struktura řešení
+
+- `UTB.Minute.AppHost`: Aspire orchestrace.
+- `UTB.Minute.Db`: Datové entity a `DbContext`.
+- `UTB.Minute.DbManager`: Obsahuje endpoint pro **Http Command** (reset databáze).
+- `UTB.Minute.Contracts`: Sdílená DTO, aby byla zajištěna typová bezpečnost mezi API a klienty.
+- `UTB.Minute.WebApi`: Hlavní byznys logika, správa objednávek.
+- `UTB.Minute.WebApi.Tests`: Unit testy pokrývající scénáře od vytvoření jídla až po jeho výdej.
+- `UTB.Minute.AdminClient`: Aplikace pro vedení menzy (správa jídel a menu).
+- `UTB.Minute.CanteenClient`: Společné rozhraní pro studenty a kuchařky (ošetřeno autorizací).
 
 ## 🏛️ Architektonická rozhodnutí
 
@@ -31,3 +44,12 @@ Projekt je navržen tak, aby šel spustit jednoduše pomocí .NET Aspire (vyžad
 ## 👥 Rozdělení práce v týmu
 
 Na projektu pracovali všichni členové týmu. Poměr odvedené práce je **1 : 1 : 1 : 1**.
+
+## 🛠️ Technologický stack
+
+- **.NET 10** - Moderní .NET runtime
+- **.NET Aspire** - Orchestrace a orchestrování
+- **Entity Framework Core** - ORM pro datovou vrstvu
+- **PostgreSQL** - Relační databáze
+- **Blazor** - Interaktivní webové rozhraní
+- **C#, HTML, CSS** - Primární jazyky projektu
