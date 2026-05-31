@@ -27,7 +27,17 @@ else
                 <td>@f.Description</td>
                 <td>@f.Price</td>
                 <td>@(f.IsActive ? "Ano" : "Ne")</td>
-                <td><button class="btn btn-sm btn-secondary" @onclick="() => Edit(f)">Upravit</button></td>
+                <td>
+                    <button class="btn btn-sm btn-secondary me-1" @onclick="() => Edit(f)">Upravit</button>
+                    @if (f.IsActive)
+                    {
+                        <button class="btn btn-sm btn-warning" @onclick="() => Deactivate(f.Id)">Deaktivovat</button>
+                    }
+                    else
+                    {
+                        <button class="btn btn-sm btn-success" @onclick="() => Activate(f.Id)">Aktivovat</button>
+                    }
+                </td>
             </tr>
         }
         </tbody>
@@ -36,29 +46,22 @@ else
 
 @if (editing)
 {
-    <EditForm Model="editModel" OnValidSubmit="Save">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="mb-3">
-            <label class="form-label">Název</label>
-            <InputText class="form-control" @bind-value="editModel.Name" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Popis</label>
-            <InputText class="form-control" @bind-value="editModel.Description" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Cena</label>
-            <InputNumber class="form-control" @bind-value="editModel.Price" />
-        </div>
-        <div class="mb-3 form-check">
-            <InputCheckbox class="form-check-input" @bind-value="editModel.IsActive" />
-            <label class="form-check-label">Aktivní</label>
-        </div>
-        <button class="btn btn-success" type="submit">Uložit</button>
-        <button class="btn btn-secondary ms-2" type="button" @onclick="Cancel">Zrušit</button>
-    </EditForm>
+    <div class="mb-3">
+        <label class="form-label">Název</label>
+        <input class="form-control" @bind="editModel.Name" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Popis</label>
+        <input class="form-control" @bind="editModel.Description" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Cena</label>
+        <input type="number" step="0.01" class="form-control" @bind="editModel.Price" />
+    </div>
+    <button class="btn btn-success" style="display:@(editing ? "inline-block" : "none")" @onclick="Save">Uložit</button>
+    <button class="btn btn-secondary ms-2" style="display:@(editing ? "inline-block" : "none")" @onclick="Cancel">Zrušit</button>
 }
+
 
 @code {
     class FoodFormModel
@@ -66,12 +69,12 @@ else
         public string Name { get; set; } = "";
         public string? Description { get; set; }
         public decimal Price { get; set; }
-        public bool IsActive { get; set; }
     }
 
     List<FoodDto>? foods;
     bool editing = false;
     FoodFormModel editModel = new();
+    EditContext editContext = default!;
     int? editId = null;
 
     string alertMessage = string.Empty;
@@ -97,28 +100,35 @@ else
 
     void NewFood()
     {
-        editing = true;
-        editId = null;
         editModel = new FoodFormModel();
+        editContext = new EditContext(editModel);
+        editId = null;
+        editing = true;
         alertMessage = string.Empty;
     }
 
     void Edit(FoodDto f)
     {
-        editing = true;
+        editModel = new FoodFormModel { Name = f.Name, Description = f.Description, Price = f.Price };
+        editContext = new EditContext(editModel);
         editId = f.Id;
-        editModel = new FoodFormModel { Name = f.Name, Description = f.Description, Price = f.Price, IsActive = f.IsActive };
+        editing = true;
         alertMessage = string.Empty;
     }
 
     void Cancel()
     {
+        Console.WriteLine("cancelled");
         editing = false;
         editId = null;
     }
 
     async Task Save()
     {
+    Console.WriteLine("worked");
+        ShowSuccess("Save clicked!");
+        StateHasChanged();
+        await Task.Delay(1);
         try
         {
             var client = Clients.CreateClient("WebApi");
@@ -136,6 +146,38 @@ else
             }
 
             editing = false;
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    async Task Deactivate(int id)
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            var resp = await client.DeleteAsync($"/api/foods/{id}");
+            resp.EnsureSuccessStatusCode();
+            ShowSuccess("Jídlo deaktivováno.");
+            await Load();
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
+    async Task Activate(int id)
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            var resp = await client.PostAsync($"/api/foods/{id}/activate", null);
+            resp.EnsureSuccessStatusCode();
+            ShowSuccess("Jídlo aktivováno.");
             await Load();
         }
         catch (Exception ex)

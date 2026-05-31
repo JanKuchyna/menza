@@ -9,6 +9,7 @@
                 else
                 {
                     <p>Přístup zamítnut. Nemáte roli kuchařky.</p>
+                    <p>Claims: @string.Join(", ", context.User.Claims.Select(c => $"{c.Type}={c.Value}"))</p>
                 }
             </NotAuthorized>
         </AuthorizeRouteView>

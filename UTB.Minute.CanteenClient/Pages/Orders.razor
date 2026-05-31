@@ -88,7 +88,11 @@ else
         try
         {
             var client = Clients.CreateClient("WebApi");
-            orders = await client.GetFromJsonAsync<List<OrderDto>>("/api/orders");
+            var resp = await client.GetAsync("/api/orders");
+            if (resp.IsSuccessStatusCode)
+                orders = await resp.Content.ReadFromJsonAsync<List<OrderDto>>();
+            else
+                ShowError($"GET /api/orders failed: {resp.StatusCode}");
         }
         catch (Exception ex)
         {

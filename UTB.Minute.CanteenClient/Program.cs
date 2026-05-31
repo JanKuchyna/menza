@@ -20,7 +20,7 @@ builder.Services.AddAuthentication(options =>
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
 })
-.AddCookie()
+.AddCookie(options => { options.Cookie.Name = "menza.canteen"; })
 .AddOpenIdConnect(options =>
 {
     options.Authority = $"{keycloakUrl}/realms/{realm}";
@@ -34,16 +34,44 @@ builder.Services.AddAuthentication(options =>
     {
         OnTicketReceived = ctx =>
         {
+            var identity = ctx.Principal?.Identities.First();
+            if (identity is null) return Task.CompletedTask;
+
             // Store the access token as a claim so Blazor components can use it via AuthenticationStateProvider
             var accessToken = ctx.Properties?.GetTokenValue("access_token");
             if (!string.IsNullOrEmpty(accessToken))
-                ctx.Principal?.Identities.First().AddClaim(new Claim("access_token", accessToken));
+            {
+                identity.AddClaim(new Claim("access_token", accessToken));
+
+                // Parse realm roles directly from the JWT access token payload
+                // (realm_access is not forwarded via the userinfo endpoint)
+                try
+                {
+                    var payload = accessToken.Split('.')[1];
+                    var padded = payload.PadRight(payload.Length + (4 - payload.Length % 4) % 4, '=');
+                    var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(padded));
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("realm_access", out var realmAccess) &&
+                        realmAccess.TryGetProperty("roles", out var roles))
+                    {
+                        foreach (var role in roles.EnumerateArray())
+                        {
+                            var roleName = role.GetString();
+                            if (roleName is not null && !identity.HasClaim(ClaimTypes.Role, roleName))
+                                identity.AddClaim(new Claim(ClaimTypes.Role, roleName));
+                        }
+                    }
+                }
+                catch { }
+            }
+
             return Task.CompletedTask;
         }
     };
 });
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddHttpContextAccessor();
 
 // HttpClient for WebApi with bearer token injection
 builder.Services.AddTransient<AuthTokenHandler>();
@@ -71,6 +99,12 @@ app.MapGet("/login", (string? returnUrl) =>
         },
         [OpenIdConnectDefaults.AuthenticationScheme]
     )).AllowAnonymous();
+
+app.MapGet("/logout", async (HttpContext ctx) =>
+{
+    await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Redirect("/");
+}).AllowAnonymous();
 
 app.MapRazorPages();
 app.MapBlazorHub();

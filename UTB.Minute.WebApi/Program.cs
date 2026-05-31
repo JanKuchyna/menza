@@ -83,6 +83,17 @@ foods.MapDelete("/{id}", async (int id, MenzaContext db) =>
     return TypedResults.NoContent();
 }).RequireAuthorization(policy => policy.RequireRole("admin"));
 
+foods.MapPost("/{id}/activate", async (int id, MenzaContext db) =>
+{
+    var food = await db.Foods.FindAsync(id);
+    if (food is null) return Results.NotFound();
+
+    food.IsActive = true;
+    await db.SaveChangesAsync();
+
+    return TypedResults.NoContent();
+}).RequireAuthorization(policy => policy.RequireRole("admin"));
+
 // ── Menu Endpoints ────────────────────────────────────────────────────────────
 var menu = api.MapGroup("/menu");
 

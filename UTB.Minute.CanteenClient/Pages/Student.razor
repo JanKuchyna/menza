@@ -93,7 +93,8 @@ else
             var resp = await client.PostAsJsonAsync("/api/orders", dto);
             if (resp.IsSuccessStatusCode)
             {
-                ShowSuccess("Objednáno.");
+                var order = await resp.Content.ReadFromJsonAsync<OrderDto>();
+                ShowSuccess($"Objednáno! Číslo vaší objednávky: {order!.Id}");
                 await Load();
             }
             else if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)

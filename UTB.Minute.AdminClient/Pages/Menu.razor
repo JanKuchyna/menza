@@ -35,37 +35,42 @@ else
 
 @if (editing)
 {
-    <EditForm Model="editModel" OnValidSubmit="Save">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-        <div class="mb-3">
-            <label class="form-label">Datum</label>
-            <InputDate class="form-control" @bind-value="editModel.Date" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Jídlo (ID)</label>
-            <InputNumber class="form-control" @bind-value="editModel.FoodId" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Dostupné porce</label>
-            <InputNumber class="form-control" @bind-value="editModel.AvailablePortions" />
-        </div>
-        <button class="btn btn-success" type="submit">Uložit</button>
-        <button class="btn btn-secondary ms-2" type="button" @onclick="Cancel">Zrušit</button>
-    </EditForm>
+    <div class="mb-3">
+        <label class="form-label">Datum</label>
+        <input type="date" class="form-control" @bind="editModel.Date" />
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Jídlo</label>
+        <select class="form-select" @bind="editModel.FoodId">
+            <option value="0">-- vyberte jídlo --</option>
+            @foreach (var f in _foods?.Where(f => f.IsActive) ?? [])
+            {
+                <option value="@f.Id">@f.Name (@f.Price Kč)</option>
+            }
+        </select>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Dostupné porce</label>
+        <input type="number" class="form-control" @bind="editModel.AvailablePortions" />
+    </div>
 }
+<button class="btn btn-success" style="display:@(editing ? "inline-block" : "none")" @onclick="Save">Uložit</button>
+<button class="btn btn-secondary ms-2" style="display:@(editing ? "inline-block" : "none")" @onclick="Cancel">Zrušit</button>
 
 @code {
     class MenuItemFormModel
     {
         public DateOnly Date { get; set; } = DateOnly.FromDateTime(DateTime.Today);
-        public int FoodId { get; set; } = 1;
+        [Range(1, int.MaxValue, ErrorMessage = "Vyberte jídlo.")]
+        public int FoodId { get; set; } = 0;
         public int AvailablePortions { get; set; } = 1;
     }
 
     List<MenuItemDto>? menu;
+    List<FoodDto>? _foods;
     bool editing = false;
     MenuItemFormModel editModel = new();
+    EditContext editContext = default!;
     int? editId = null;
 
     string alertMessage = string.Empty;
@@ -73,7 +78,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        await Load();
+        await Task.WhenAll(Load(), LoadFoods());
     }
 
     async Task Load()
@@ -89,19 +94,35 @@ else
         }
     }
 
+    async Task LoadFoods()
+    {
+        try
+        {
+            var client = Clients.CreateClient("WebApi");
+            _foods = await client.GetFromJsonAsync<List<FoodDto>>("/api/foods");
+        }
+        catch (Exception ex)
+        {
+            ShowError(ex.Message);
+        }
+    }
+
     void NewItem()
     {
-        editing = true;
-        editId = null;
         editModel = new MenuItemFormModel();
+        editContext = new EditContext(editModel);
+        editId = null;
+        editing = true;
         alertMessage = string.Empty;
     }
 
     void Edit(MenuItemDto m)
     {
-        editing = true;
-        editId = m.Id;
         editModel = new MenuItemFormModel { Date = m.Date, FoodId = m.Food.Id, AvailablePortions = m.AvailablePortions };
+        editContext = new EditContext(editModel);
+        editId = m.Id;
+        editing = true;
+        alertMessage = string.Empty;
     }
 
     void Cancel() => editing = false;
